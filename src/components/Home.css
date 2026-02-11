@@ -1,0 +1,212 @@
+.home {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-container {
+  animation: fadeIn 0.8s ease-out;
+  width: 100%;
+  max-width: 600px;
+}
+
+.home-header {
+  text-align: center;
+  margin-bottom: 60px;
+  animation: slideInDown 0.6s ease-out;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.soccer-ball {
+  font-size: 5rem;
+  animation: rotateIn 1s ease-out, float 3s ease-in-out infinite;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(10deg);
+  }
+}
+
+.home-header h1 {
+  margin: 0;
+  color: var(--accent-yellow);
+  font-size: 5rem;
+  text-shadow: 
+    4px 4px 0 rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+.tagline {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--off-white);
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideInUp 0.8s ease-out 0.2s both;
+}
+
+.home-btn {
+  background: var(--white);
+  color: var(--dark);
+  padding: 28px 40px;
+  border-radius: 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+}
+
+.home-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s;
+}
+
+.home-btn:hover::before {
+  left: 100%;
+}
+
+.btn-icon {
+  font-size: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.btn-text {
+  flex: 1;
+  text-align: left;
+}
+
+.home-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.home-btn:hover .btn-icon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+.home-btn:active {
+  transform: translateY(-2px) scale(1);
+}
+
+.btn-create-player {
+  border-color: var(--accent-orange);
+}
+
+.btn-create-player:hover {
+  background: var(--accent-orange);
+  color: var(--white);
+}
+
+.btn-create-match {
+  border-color: var(--accent-yellow);
+}
+
+.btn-create-match:hover {
+  background: var(--accent-yellow);
+  color: var(--dark);
+}
+
+.btn-history {
+  border-color: var(--pitch-light);
+}
+
+.btn-history:hover {
+  background: var(--pitch-light);
+  color: var(--white);
+}
+
+.home-footer {
+  margin-top: 60px;
+  animation: fadeIn 1s ease-out 0.6s both;
+}
+
+.footer-decoration {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0.5;
+}
+
+.grass-line {
+  width: 60px;
+  height: 4px;
+  background: var(--accent-yellow);
+  border-radius: 2px;
+  animation: grow 0.8s ease-out both;
+}
+
+.grass-line:nth-child(1) {
+  animation-delay: 0.7s;
+}
+
+.grass-line:nth-child(2) {
+  animation-delay: 0.8s;
+}
+
+.grass-line:nth-child(3) {
+  animation-delay: 0.9s;
+}
+
+@keyframes grow {
+  from {
+    width: 0;
+  }
+  to {
+    width: 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-header h1 {
+    font-size: 3.5rem;
+  }
+
+  .soccer-ball {
+    font-size: 4rem;
+  }
+
+  .home-btn {
+    padding: 24px 32px;
+    font-size: 1.1rem;
+  }
+
+  .btn-icon {
+    font-size: 1.5rem;
+  }
+}
