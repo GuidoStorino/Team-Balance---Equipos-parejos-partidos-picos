@@ -1,6 +1,6 @@
 import './Home.css';
 
-function Home({ setView }) {
+function Home({ setView, pendingMatches, ownerPlayer }) {
   return (
     <div className="home">
       <div className="home-container">
@@ -9,11 +9,14 @@ function Home({ setView }) {
             <div className="soccer-ball">⚽</div>
             <h1>Team Balance</h1>
           </div>
+          {ownerPlayer && (
+            <p className="welcome-tag">Hola, <strong>{ownerPlayer.name}</strong> 👋</p>
+          )}
           <p className="tagline">Equipos Parejos, Partidos Épicos</p>
         </div>
 
         <div className="home-actions">
-          <button 
+          <button
             className="home-btn btn-create-player"
             onClick={() => setView('create-player')}
           >
@@ -21,7 +24,7 @@ function Home({ setView }) {
             <span className="btn-text">Crear Jugador</span>
           </button>
 
-          <button 
+          <button
             className="home-btn btn-create-match"
             onClick={() => setView('create-match')}
           >
@@ -29,12 +32,17 @@ function Home({ setView }) {
             <span className="btn-text">Armar Partido</span>
           </button>
 
-          <button 
+          <button
             className="home-btn btn-history"
             onClick={() => setView('history')}
           >
             <span className="btn-icon">📋</span>
-            <span className="btn-text">Historial</span>
+            <span className="btn-text">
+              Historial
+              {pendingMatches && pendingMatches.length > 0 && (
+                <span className="pending-badge">{pendingMatches.length} pendiente{pendingMatches.length > 1 ? 's' : ''}</span>
+              )}
+            </span>
           </button>
         </div>
 
