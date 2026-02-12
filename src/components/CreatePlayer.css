@@ -72,7 +72,7 @@
 .folder-filter-item { display: flex; gap: 4px; }
 
 .folder-filter {
-  background: rgba(255,255,255,0.15); color: var(--white);
+  background: rgba(255,255,255,0.15); color: var(--black);
   padding: 10px 18px; border-radius: 8px;
   font-size: 0.9rem; font-weight: 600;
   transition: all 0.3s ease;
