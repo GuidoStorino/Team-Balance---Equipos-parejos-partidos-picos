@@ -6,6 +6,17 @@ import CreateMatch from './components/CreateMatch';
 import Teams from './components/Teams';
 import MatchHistory from './components/MatchHistory';
 import OnboardingModal from './components/OnboardingModal';
+import SettingsPanel from './components/SettingsPanel';
+import './components/SettingsPanel.css';
+import { useT } from './translations';
+
+const DEFAULT_SETTINGS = {
+  lang: 'es',
+  funnyNames: true,
+  balanceMode: 'total', // 'total' | 'defense' | 'attack'
+  team1Color: '#ffd700',
+  team2Color: '#ff6b35',
+};
 
 function App() {
   const [view, setView] = useState('home');
@@ -16,6 +27,10 @@ function App() {
   const [pendingMatches, setPendingMatches] = useState([]);
   const [ownerPlayer, setOwnerPlayer] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const t = useT(settings.lang);
 
   useEffect(() => {
     const savedPlayers = localStorage.getItem('teamBalancePlayers');
@@ -23,6 +38,7 @@ function App() {
     const savedMatches = localStorage.getItem('teamBalanceMatches');
     const savedPending = localStorage.getItem('teamBalancePending');
     const savedOwner = localStorage.getItem('teamBalanceOwner');
+    const savedSettings = localStorage.getItem('teamBalanceSettings');
     const onboardingDone = localStorage.getItem('teamBalanceOnboarding');
 
     if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
@@ -30,6 +46,7 @@ function App() {
     if (savedMatches) setMatches(JSON.parse(savedMatches));
     if (savedPending) setPendingMatches(JSON.parse(savedPending));
     if (savedOwner) setOwnerPlayer(JSON.parse(savedOwner));
+    if (savedSettings) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) });
     if (!onboardingDone) setShowOnboarding(true);
   }, []);
 
@@ -38,6 +55,7 @@ function App() {
   useEffect(() => { localStorage.setItem('teamBalanceMatches', JSON.stringify(matches)); }, [matches]);
   useEffect(() => { localStorage.setItem('teamBalancePending', JSON.stringify(pendingMatches)); }, [pendingMatches]);
   useEffect(() => { if (ownerPlayer) localStorage.setItem('teamBalanceOwner', JSON.stringify(ownerPlayer)); }, [ownerPlayer]);
+  useEffect(() => { localStorage.setItem('teamBalanceSettings', JSON.stringify(settings)); }, [settings]);
 
   const handleOnboardingComplete = (playerData) => {
     const ownerData = { ...playerData, isOwner: true };
@@ -45,6 +63,35 @@ function App() {
     setPlayers(prev => [...prev, ownerData]);
     localStorage.setItem('teamBalanceOnboarding', 'done');
     setShowOnboarding(false);
+  };
+
+  const handleRenameOwner = (newName) => {
+    if (!ownerPlayer) return;
+    const oldName = ownerPlayer.name;
+    const updated = { ...ownerPlayer, name: newName };
+    setOwnerPlayer(updated);
+    localStorage.setItem('teamBalanceOwner', JSON.stringify(updated));
+    setPlayers(prev => prev.map(p => p.isOwner ? { ...p, name: newName } : p));
+    // Update folders that reference old name
+    setFolders(prev => prev.map(folder => ({
+      ...folder,
+      players: folder.players.map(n => n === oldName ? newName : n)
+    })));
+  };
+
+  const handleSettingsChange = (newSettings) => setSettings(newSettings);
+
+  const handleResetApp = () => {
+    localStorage.clear();
+    setPlayers([]);
+    setFolders([]);
+    setMatches([]);
+    setPendingMatches([]);
+    setOwnerPlayer(null);
+    setCurrentTeams(null);
+    setSettings(DEFAULT_SETTINGS);
+    setView('home');
+    setShowOnboarding(true);
   };
 
   const addPlayer = (player) => setPlayers([...players, player]);
@@ -129,10 +176,12 @@ function App() {
   const deleteMatch = (matchId) => setMatches(matches.filter(m => m.id !== matchId));
   const clearCurrentTeams = () => setCurrentTeams(null);
 
+  const sharedProps = { t, settings };
+
   const renderView = () => {
     switch (view) {
       case 'home':
-        return <Home setView={setView} pendingMatches={pendingMatches} ownerPlayer={ownerPlayer} />;
+        return <Home setView={setView} pendingMatches={pendingMatches} ownerPlayer={ownerPlayer} t={t} />;
       case 'create-player':
         return (
           <CreatePlayer
@@ -147,6 +196,7 @@ function App() {
             addPlayerToFolder={addPlayerToFolder}
             removePlayerFromFolder={removePlayerFromFolder}
             ownerPlayer={ownerPlayer}
+            t={t}
           />
         );
       case 'create-match':
@@ -156,6 +206,8 @@ function App() {
             players={players}
             folders={folders}
             createTeams={createTeams}
+            settings={settings}
+            t={t}
           />
         );
       case 'teams':
@@ -166,6 +218,8 @@ function App() {
             clearCurrentTeams={clearCurrentTeams}
             saveMatch={saveMatch}
             savePendingMatch={savePendingMatch}
+            settings={settings}
+            t={t}
           />
         );
       case 'history':
@@ -178,17 +232,43 @@ function App() {
             pendingMatches={pendingMatches}
             deletePendingMatch={deletePendingMatch}
             resumePendingMatch={resumePendingMatch}
+            t={t}
           />
         );
       default:
-        return <Home setView={setView} pendingMatches={pendingMatches} ownerPlayer={ownerPlayer} />;
+        return <Home setView={setView} pendingMatches={pendingMatches} ownerPlayer={ownerPlayer} t={t} />;
     }
   };
 
   return (
     <div className="app">
-      {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
+      {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} t={t} />}
       {renderView()}
+
+      {/* Settings FAB */}
+      {!showOnboarding && (
+        <>
+          <button
+            className={`settings-fab ${settingsOpen ? 'open' : ''}`}
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            title={t.settings}
+          >
+            ⚙️
+          </button>
+          <SettingsPanel
+            isOpen={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            settings={settings}
+            onSettingsChange={handleSettingsChange}
+            ownerPlayer={ownerPlayer}
+            players={players}
+            matches={matches}
+            onRenameOwner={handleRenameOwner}
+            onResetApp={handleResetApp}
+            t={t}
+          />
+        </>
+      )}
     </div>
   );
 }

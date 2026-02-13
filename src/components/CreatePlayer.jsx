@@ -3,7 +3,8 @@ import './CreatePlayer.css';
 
 function CreatePlayer({
   setView, players, addPlayer, updatePlayer, deletePlayer,
-  folders, addFolder, deleteFolder, addPlayerToFolder, removePlayerFromFolder, ownerPlayer
+  folders, addFolder, deleteFolder, addPlayerToFolder, removePlayerFromFolder,
+  ownerPlayer, t
 }) {
   const [name, setName] = useState('');
   const [velocidad, setVelocidad] = useState(5);
@@ -19,19 +20,26 @@ function CreatePlayer({
   const [expandedPlayers, setExpandedPlayers] = useState({});
   const [showOwnerDeleteAlert, setShowOwnerDeleteAlert] = useState(false);
 
+  const skillList = [
+    { key: 'velocidad', label: t.skills.velocidad, value: velocidad, setter: setVelocidad },
+    { key: 'defensa',   label: t.skills.defensa,   value: defensa,   setter: setDefensa   },
+    { key: 'pase',      label: t.skills.pase,       value: pase,      setter: setPase      },
+    { key: 'gambeta',   label: t.skills.gambeta,    value: gambeta,   setter: setGambeta   },
+    { key: 'pegada',    label: t.skills.pegada,     value: pegada,    setter: setPegada    },
+  ];
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    if (!name.trim()) { setError('El nombre no puede estar vacío'); return; }
-
+    if (!name.trim()) { setError(t.errorEmptyName); return; }
     if (editingPlayer) {
       if (editingPlayer.name !== name && players.some(p => p.name === name)) {
-        setError('Ya existe un jugador con ese nombre'); return;
+        setError(t.errorDuplicateName); return;
       }
       updatePlayer({ ...editingPlayer, name, velocidad, defensa, pase, gambeta, pegada });
       setEditingPlayer(null);
     } else {
-      if (players.some(p => p.name === name)) { setError('Ya existe un jugador con ese nombre'); return; }
+      if (players.some(p => p.name === name)) { setError(t.errorDuplicateName); return; }
       addPlayer({ name, velocidad, defensa, pase, gambeta, pegada });
     }
     resetForm();
@@ -39,14 +47,6 @@ function CreatePlayer({
 
   const resetForm = () => {
     setName(''); setVelocidad(5); setDefensa(5); setPase(5); setGambeta(5); setPegada(5); setError('');
-  };
-
-  const handleDeletePlayer = (player) => {
-    if (player.isOwner) {
-      setShowOwnerDeleteAlert(true);
-      return;
-    }
-    deletePlayer(player.name);
   };
 
   const handleEdit = (player) => {
@@ -58,6 +58,11 @@ function CreatePlayer({
 
   const handleCancelEdit = () => { setEditingPlayer(null); resetForm(); };
 
+  const handleDeletePlayer = (player) => {
+    if (player.isOwner) { setShowOwnerDeleteAlert(true); return; }
+    deletePlayer(player.name);
+  };
+
   const handleAddFolder = () => {
     if (newFolderName.trim()) {
       addFolder(newFolderName.trim());
@@ -68,11 +73,8 @@ function CreatePlayer({
 
   const handlePlayerFolderToggle = (playerName, folderName) => {
     const folder = folders.find(f => f.name === folderName);
-    if (folder.players.includes(playerName)) {
-      removePlayerFromFolder(folderName, playerName);
-    } else {
-      addPlayerToFolder(folderName, playerName);
-    }
+    if (folder.players.includes(playerName)) removePlayerFromFolder(folderName, playerName);
+    else addPlayerToFolder(folderName, playerName);
   };
 
   const getFilteredPlayers = () => {
@@ -91,53 +93,44 @@ function CreatePlayer({
     return velocidad + defensa + pase + gambeta + pegada;
   };
 
-  const skillList = [
-    { key: 'velocidad', label: '⚡ Velocidad', value: velocidad, setter: setVelocidad },
-    { key: 'defensa', label: '🛡️ Defensa', value: defensa, setter: setDefensa },
-    { key: 'pase', label: '🎯 Pase', value: pase, setter: setPase },
-    { key: 'gambeta', label: '🎪 Gambeta', value: gambeta, setter: setGambeta },
-    { key: 'pegada', label: '💥 Pegada', value: pegada, setter: setPegada },
+  const skillKeys = [
+    { icon: '⚡', key: 'velocidad' }, { icon: '🛡️', key: 'defensa' },
+    { icon: '🎯', key: 'pase' }, { icon: '🎪', key: 'gambeta' }, { icon: '💥', key: 'pegada' },
   ];
 
   return (
     <div className="create-player">
       <div className="container">
 
-        {/* Owner delete blocker */}
         {showOwnerDeleteAlert && (
           <div className="owner-alert-overlay" onClick={() => setShowOwnerDeleteAlert(false)}>
             <div className="owner-alert-box" onClick={e => e.stopPropagation()}>
               <div className="owner-alert-icon">🤦</div>
-              <h3>¡Pero estás crazy, Macaya!</h3>
-              <p>¿Cómo te vas a eliminar a vos mismo?</p>
+              <h3>{t.ownerDeleteTitle}</h3>
+              <p>{t.ownerDeleteText}</p>
               <button className="btn-primary" onClick={() => setShowOwnerDeleteAlert(false)}>
-                Tenés razón, me calmo
+                {t.ownerDeleteClose}
               </button>
             </div>
           </div>
         )}
+
         <div className="header-section">
-          <button className="btn-back" onClick={() => setView('home')}>← Volver</button>
-          <h2>Gestión de Jugadores</h2>
+          <button className="btn-back" onClick={() => setView('home')}>{t.back}</button>
+          <h2>{t.managePlayersTitle}</h2>
         </div>
 
-        {/* FORM */}
+        {/* Form */}
         <div className="player-form-container">
           <form onSubmit={handleSubmit} className="player-form">
-            <h3>{editingPlayer ? 'Editar Jugador' : 'Crear Nuevo Jugador'}</h3>
+            <h3>{editingPlayer ? t.editPlayer : t.createNewPlayer}</h3>
             {error && <div className="error-message">{error}</div>}
-
             <div className="form-group">
-              <label>Nombre del Jugador</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ej: Lionel Messi"
-                disabled={editingPlayer !== null && editingPlayer.isOwner}
-              />
+              <label>{t.playerName}</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder={t.playerNamePlaceholder}
+                disabled={editingPlayer?.isOwner} />
             </div>
-
             <div className="skills-grid">
               {skillList.map(skill => (
                 <div key={skill.key} className="skill-item">
@@ -145,80 +138,73 @@ function CreatePlayer({
                     <label>{skill.label}</label>
                     <span className="skill-value">{skill.value}</span>
                   </div>
-                  <input
-                    type="range" min="1" max="10"
-                    value={skill.value}
-                    onChange={(e) => skill.setter(Number(e.target.value))}
-                  />
+                  <input type="range" min="1" max="10" value={skill.value}
+                    onChange={(e) => skill.setter(Number(e.target.value))} />
                 </div>
               ))}
             </div>
-
             <div className="total-rating">
-              <span>Total:</span>
+              <span>{t.total}:</span>
               <span className="total-value">{getTotal()}/50</span>
             </div>
-
             <div className="form-actions">
               {editingPlayer && (
-                <button type="button" className="btn-secondary" onClick={handleCancelEdit}>Cancelar</button>
+                <button type="button" className="btn-secondary" onClick={handleCancelEdit}>{t.cancel}</button>
               )}
               <button type="submit" className="btn-primary">
-                {editingPlayer ? 'Actualizar' : 'Crear'} Jugador
+                {editingPlayer ? t.updateBtn : t.createBtn}
               </button>
             </div>
           </form>
         </div>
 
-        {/* FOLDERS */}
+        {/* Folders */}
         <div className="folders-section">
           <div className="folders-header">
-            <h3>Carpetas</h3>
+            <h3>{t.folders}</h3>
             <button className="btn-primary btn-small" onClick={() => setShowFolderInput(!showFolderInput)}>
-              + Nueva Carpeta
+              {t.newFolder}
             </button>
           </div>
           {showFolderInput && (
             <div className="folder-input-container">
-              <input
-                type="text" value={newFolderName}
+              <input type="text" value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Nombre de la carpeta"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()}
-              />
-              <button className="btn-primary btn-small" onClick={handleAddFolder}>Crear</button>
+                placeholder={t.folderNamePlaceholder}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()} />
+              <button className="btn-primary btn-small" onClick={handleAddFolder}>{t.save}</button>
             </div>
           )}
           <div className="folder-filters">
-            <button className={`folder-filter ${selectedFolder === 'all' ? 'active' : ''}`} onClick={() => setSelectedFolder('all')}>
-              Todos ({players.length})
+            <button className={`folder-filter ${selectedFolder === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedFolder('all')}>
+              {t.allPlayers} ({players.length})
             </button>
             {folders.map(folder => (
               <div key={folder.name} className="folder-filter-item">
-                <button
-                  className={`folder-filter ${selectedFolder === folder.name ? 'active' : ''}`}
-                  onClick={() => setSelectedFolder(folder.name)}
-                >
+                <button className={`folder-filter ${selectedFolder === folder.name ? 'active' : ''}`}
+                  onClick={() => setSelectedFolder(folder.name)}>
                   📁 {folder.name} ({folder.players.length})
                 </button>
-                <button className="btn-delete-folder" onClick={() => deleteFolder(folder.name)} title="Eliminar carpeta">×</button>
+                <button className="btn-delete-folder" onClick={() => deleteFolder(folder.name)}>×</button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* PLAYERS LIST */}
+        {/* Players list */}
         <div className="players-list-section">
-          <h3>Jugadores Creados ({getFilteredPlayers().length})</h3>
+          <h3>{t.createdPlayers} ({getFilteredPlayers().length})</h3>
           {getFilteredPlayers().length === 0 ? (
-            <div className="empty-state"><p>No hay jugadores {selectedFolder !== 'all' ? 'en esta carpeta' : 'creados'}</p></div>
+            <div className="empty-state">
+              <p>{selectedFolder !== 'all' ? t.noPlayersFolder : t.noPlayers}</p>
+            </div>
           ) : (
             <div className="players-grid">
               {getFilteredPlayers().map(player => {
                 const isExpanded = expandedPlayers[player.name];
                 return (
                   <div key={player.name} className={`player-card ${isExpanded ? 'expanded' : ''} ${player.isOwner ? 'owner-card' : ''}`}>
-                    {/* ALWAYS VISIBLE: name + total + expand toggle */}
                     <div className="player-card-summary" onClick={() => toggleExpand(player.name)}>
                       <div className="player-card-name-row">
                         {player.isOwner && <span className="owner-badge">👑</span>}
@@ -229,18 +215,10 @@ function CreatePlayer({
                         <span className="expand-arrow">{isExpanded ? '▲' : '▼'}</span>
                       </div>
                     </div>
-
-                    {/* EXPANDABLE CONTENT */}
                     {isExpanded && (
                       <div className="player-card-details">
                         <div className="player-skills-compact">
-                          {[
-                            { icon: '⚡', key: 'velocidad' },
-                            { icon: '🛡️', key: 'defensa' },
-                            { icon: '🎯', key: 'pase' },
-                            { icon: '🎪', key: 'gambeta' },
-                            { icon: '💥', key: 'pegada' },
-                          ].map(s => (
+                          {skillKeys.map(s => (
                             <div key={s.key} className="skill-bar">
                               <span>{s.icon}</span>
                               <div className="bar">
@@ -250,25 +228,21 @@ function CreatePlayer({
                             </div>
                           ))}
                         </div>
-
                         {folders.length > 0 && (
                           <div className="player-folders">
                             {folders.map(folder => (
                               <label key={folder.name} className="folder-checkbox">
-                                <input
-                                  type="checkbox"
+                                <input type="checkbox"
                                   checked={folder.players.includes(player.name)}
-                                  onChange={() => handlePlayerFolderToggle(player.name, folder.name)}
-                                />
+                                  onChange={() => handlePlayerFolderToggle(player.name, folder.name)} />
                                 <span>{folder.name}</span>
                               </label>
                             ))}
                           </div>
                         )}
-
                         <div className="player-actions">
-                          <button className="btn-edit" onClick={() => handleEdit(player)}>✏️ Editar</button>
-                          <button className="btn-delete" onClick={() => handleDeletePlayer(player)}>🗑️ Eliminar</button>
+                          <button className="btn-edit" onClick={() => handleEdit(player)}>{t.editBtn}</button>
+                          <button className="btn-delete" onClick={() => handleDeletePlayer(player)}>{t.deleteBtn}</button>
                         </div>
                       </div>
                     )}
