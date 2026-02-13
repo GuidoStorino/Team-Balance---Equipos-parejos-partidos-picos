@@ -17,6 +17,7 @@ function CreatePlayer({
   const [selectedFolder, setSelectedFolder] = useState('all');
   const [error, setError] = useState('');
   const [expandedPlayers, setExpandedPlayers] = useState({});
+  const [showOwnerDeleteAlert, setShowOwnerDeleteAlert] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -38,6 +39,14 @@ function CreatePlayer({
 
   const resetForm = () => {
     setName(''); setVelocidad(5); setDefensa(5); setPase(5); setGambeta(5); setPegada(5); setError('');
+  };
+
+  const handleDeletePlayer = (player) => {
+    if (player.isOwner) {
+      setShowOwnerDeleteAlert(true);
+      return;
+    }
+    deletePlayer(player.name);
   };
 
   const handleEdit = (player) => {
@@ -93,6 +102,20 @@ function CreatePlayer({
   return (
     <div className="create-player">
       <div className="container">
+
+        {/* Owner delete blocker */}
+        {showOwnerDeleteAlert && (
+          <div className="owner-alert-overlay" onClick={() => setShowOwnerDeleteAlert(false)}>
+            <div className="owner-alert-box" onClick={e => e.stopPropagation()}>
+              <div className="owner-alert-icon">🤦</div>
+              <h3>¡Pero estás crazy, Macaya!</h3>
+              <p>¿Cómo te vas a eliminar a vos mismo?</p>
+              <button className="btn-primary" onClick={() => setShowOwnerDeleteAlert(false)}>
+                Tenés razón, me calmo
+              </button>
+            </div>
+          </div>
+        )}
         <div className="header-section">
           <button className="btn-back" onClick={() => setView('home')}>← Volver</button>
           <h2>Gestión de Jugadores</h2>
@@ -245,9 +268,7 @@ function CreatePlayer({
 
                         <div className="player-actions">
                           <button className="btn-edit" onClick={() => handleEdit(player)}>✏️ Editar</button>
-                          {!player.isOwner && (
-                            <button className="btn-delete" onClick={() => deletePlayer(player.name)}>🗑️ Eliminar</button>
-                          )}
+                          <button className="btn-delete" onClick={() => handleDeletePlayer(player)}>🗑️ Eliminar</button>
                         </div>
                       </div>
                     )}

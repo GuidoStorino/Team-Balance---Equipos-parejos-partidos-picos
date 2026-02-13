@@ -97,20 +97,36 @@ function CreateMatch({ setView, players, folders, createTeams }) {
     const gkPlayers = playersToBalance.filter(p => gks.includes(p.name));
     const fieldPlayers = playersToBalance.filter(p => !gks.includes(p.name));
 
-    if (gkPlayers.length > 0) {
-      team1.push(gkPlayers[0]);
-      if (gkPlayers.length > 1) team2.push(gkPlayers[1]);
-    }
-
     const withRatings = fieldPlayers.map(p => ({
       ...p,
       total: p.velocidad + p.defensa + p.pase + p.gambeta + p.pegada
     })).sort((a, b) => b.total - a.total);
 
-    withRatings.forEach((player, index) => {
-      if (index % 2 === 0) team1.push(player);
-      else team2.push(player);
-    });
+    if (gkPlayers.length >= 2) {
+      // Two GKs: one per team, then snake-draft field players
+      team1.push(gkPlayers[0]);
+      team2.push(gkPlayers[1]);
+      withRatings.forEach((player, index) => {
+        if (index % 2 === 0) team1.push(player);
+        else team2.push(player);
+      });
+    } else if (gkPlayers.length === 1) {
+      // One GK: treat them like any field player but keep GK role.
+      // Insert the GK back into the sorted pool by their total rating,
+      // then snake-draft everyone. Team that gets the GK at position 0 uses them as keeper.
+      const gkWithTotal = { ...gkPlayers[0], total: gkPlayers[0].velocidad + gkPlayers[0].defensa + gkPlayers[0].pase + gkPlayers[0].gambeta + gkPlayers[0].pegada };
+      const allSorted = [...withRatings, gkWithTotal].sort((a, b) => b.total - a.total);
+      allSorted.forEach((player, index) => {
+        if (index % 2 === 0) team1.push(player);
+        else team2.push(player);
+      });
+    } else {
+      // No GKs: plain snake-draft
+      withRatings.forEach((player, index) => {
+        if (index % 2 === 0) team1.push(player);
+        else team2.push(player);
+      });
+    }
 
     return { team1, team2 };
   };
@@ -181,23 +197,24 @@ function CreateMatch({ setView, players, folders, createTeams }) {
               Todos ({allAvailablePlayers.length})
             </button>
             {folders.map(folder => {
+              const isActive = selectedFolder === folder.name;
               const folderPlayerNames = folder.players;
               const allSelected = folderPlayerNames.length > 0 && folderPlayerNames.every(n => selectedPlayers.includes(n));
               return (
                 <div key={folder.name} className="folder-btn-group">
                   <button
-                    className={`folder-btn ${selectedFolder === folder.name ? 'active' : ''}`}
+                    className={`folder-btn ${isActive ? 'active' : ''}`}
                     onClick={() => setSelectedFolder(folder.name)}
                   >
                     📁 {folder.name} ({folder.players.length})
                   </button>
-                  {folder.players.length > 0 && (
+                  {/* Only show select-all when this folder is the active filter */}
+                  {isActive && folder.players.length > 0 && (
                     <button
                       className={`folder-select-all-btn ${allSelected ? 'all-selected' : ''}`}
                       onClick={() => handleSelectFolder(folder.name)}
-                      title={allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
                     >
-                      {allSelected ? '✓ Todos' : '+ Todos'}
+                      {allSelected ? '✓ Deseleccionar todos' : '+ Seleccionar todos'}
                     </button>
                   )}
                 </div>

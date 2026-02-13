@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './Teams.css';
+import { saveMediaFile, deleteMediaFile } from '../mediaDB';
 
 const funnyTeamNames = [
   'Los Vainillas', 'Heladeros del Conurbano', 'Menos Patada que una Pila',
@@ -19,10 +20,15 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
   const [team1Goals, setTeam1Goals] = useState(0);
   const [team2Goals, setTeam2Goals] = useState(0);
   const [scorers, setScorers] = useState([]);
+  const [assists, setAssists] = useState([]);
   const [highlights, setHighlights] = useState('');
+  // mediaFiles: [{ id, name, type, previewUrl, saved }]
+  // previewUrl = temporary object URL for display only (not persisted)
   const [mediaFiles, setMediaFiles] = useState([]);
   const [newScorerTeam, setNewScorerTeam] = useState('1');
   const [newScorerPlayer, setNewScorerPlayer] = useState('');
+  const [newAssistTeam, setNewAssistTeam] = useState('1');
+  const [newAssistPlayer, setNewAssistPlayer] = useState('');
   const [showPendingConfirm, setShowPendingConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -36,6 +42,15 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
       setTeam2Name(shuffled[1]);
     }
   }, []);
+
+  // Revoke preview URLs when component unmounts to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      mediaFiles.forEach(m => {
+        if (m.previewUrl) URL.revokeObjectURL(m.previewUrl);
+      });
+    };
+  }, [mediaFiles]);
 
   if (!teams) { setView('home'); return null; }
 
@@ -53,20 +68,40 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
 
   const handlePlayedMatch = () => setShowMatchResult(true);
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
-    const newMedia = files.map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      type: file.type.startsWith('image/') ? 'image' : 'video',
-      url: URL.createObjectURL(file),
-      file,
-    }));
-    setMediaFiles([...mediaFiles, ...newMedia]);
+    const newMedia = [];
+
+    for (const file of files) {
+      const id = `media_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const type = file.type.startsWith('image/') ? 'image' : 'video';
+      const previewUrl = URL.createObjectURL(file);
+
+      // Persist the blob to IndexedDB immediately
+      try {
+        await saveMediaFile(id, file, file.name, type);
+        newMedia.push({ id, name: file.name, type, previewUrl });
+      } catch (err) {
+        console.error('Error saving media to IndexedDB:', err);
+        // Still show it in this session even if save failed
+        newMedia.push({ id, name: file.name, type, previewUrl });
+      }
+    }
+
+    setMediaFiles(prev => [...prev, ...newMedia]);
+    // Reset input so the same file can be re-added if needed
+    e.target.value = '';
   };
 
-  const handleRemoveMedia = (id) => {
-    setMediaFiles(mediaFiles.filter(m => m.id !== id));
+  const handleRemoveMedia = async (id) => {
+    const item = mediaFiles.find(m => m.id === id);
+    if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    try {
+      await deleteMediaFile(id);
+    } catch (err) {
+      console.error('Error deleting media from IndexedDB:', err);
+    }
+    setMediaFiles(prev => prev.filter(m => m.id !== id));
   };
 
   const handleSaveMatch = () => {
@@ -77,8 +112,10 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
       team1: { name: team1Name, players: teams.team1.map(p => p.name), goals: team1Goals },
       team2: { name: team2Name, players: teams.team2.map(p => p.name), goals: team2Goals },
       scorers,
+      assists,
       highlights,
-      media: mediaFiles.map(m => ({ id: m.id, name: m.name, type: m.type, url: m.url })),
+      // Store only id, name, type — the actual blob lives in IndexedDB
+      media: mediaFiles.map(m => ({ id: m.id, name: m.name, type: m.type })),
     };
     saveMatch(matchData);
     setView('history');
@@ -91,18 +128,17 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
     setScorers([...scorers, { team: newScorerTeam, player: newScorerPlayer }]);
     setNewScorerPlayer('');
   };
-
   const handleRemoveScorer = (index) => setScorers(scorers.filter((_, i) => i !== index));
+
+  const handleAddAssist = () => {
+    if (!newAssistPlayer) return;
+    setAssists([...assists, { team: newAssistTeam, player: newAssistPlayer }]);
+    setNewAssistPlayer('');
+  };
+  const handleRemoveAssist = (index) => setAssists(assists.filter((_, i) => i !== index));
 
   // Distribute players across field rows
   const distributeTeam = (teamPlayers) => {
-    const gk = teamPlayers.find(p => {
-      const allGk = [
-        ...(teams.team1 || []).filter((_, i) => i === 0 && teams.team1.length > 0),
-      ];
-      return false; // We rely on first player being GK if they were marked
-    });
-    // Simple even distribution for display
     const size = teamPlayers.length;
     if (size <= 3) return { rows: [teamPlayers] };
     if (size <= 5) {
@@ -166,6 +202,7 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
               </div>
             </div>
 
+            {/* Scorers */}
             <div className="scorers-section">
               <h4>⚽ Goleadores</h4>
               <div className="add-scorer">
@@ -193,6 +230,35 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
               )}
             </div>
 
+            {/* Assists */}
+            <div className="scorers-section">
+              <h4>🎯 Asistencias</h4>
+              <div className="add-scorer">
+                <select value={newAssistTeam} onChange={(e) => setNewAssistTeam(e.target.value)}>
+                  <option value="1">{team1Name}</option>
+                  <option value="2">{team2Name}</option>
+                </select>
+                <select value={newAssistPlayer} onChange={(e) => setNewAssistPlayer(e.target.value)}>
+                  <option value="">Seleccionar jugador</option>
+                  {(newAssistTeam === '1' ? teams.team1 : teams.team2).map(player => (
+                    <option key={player.name} value={player.name}>{player.name}</option>
+                  ))}
+                </select>
+                <button className="btn-primary btn-small" onClick={handleAddAssist}>+ Asistencia</button>
+              </div>
+              {assists.length > 0 && (
+                <div className="scorers-list">
+                  {assists.map((assist, index) => (
+                    <div key={index} className="scorer-item assist-item">
+                      <span>🎯 {assist.player} ({assist.team === '1' ? team1Name : team2Name})</span>
+                      <button className="btn-remove" onClick={() => handleRemoveAssist(index)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Highlights + media */}
             <div className="highlights-section">
               <h4>📝 Highlights</h4>
               <textarea
@@ -219,9 +285,9 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
                   {mediaFiles.map(m => (
                     <div key={m.id} className="media-item">
                       {m.type === 'image' ? (
-                        <img src={m.url} alt={m.name} />
+                        <img src={m.previewUrl} alt={m.name} />
                       ) : (
-                        <div className="video-thumb">🎬 {m.name}</div>
+                        <div className="video-thumb">🎬<span>{m.name}</span></div>
                       )}
                       <button className="btn-remove-media" onClick={() => handleRemoveMedia(m.id)}>×</button>
                     </div>
@@ -240,7 +306,7 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
     );
   }
 
-  // Main teams view
+  // Main teams view on the field
   return (
     <div className="teams-view">
       <div className="container">
@@ -263,7 +329,6 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
 
         <div className="field-container">
           <div className="field">
-            {/* Team 1 */}
             <div className="team-side team-side-1">
               <div className="team-label team-1-label">{team1Name}</div>
               {t1Dist.rows.map((row, ri) => (
@@ -277,12 +342,7 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch 
                 </div>
               ))}
             </div>
-
-            <div className="center-line">
-              <div className="center-circle"></div>
-            </div>
-
-            {/* Team 2 */}
+            <div className="center-line"><div className="center-circle"></div></div>
             <div className="team-side team-side-2">
               {[...t2Dist.rows].reverse().map((row, ri) => (
                 <div key={ri} className="player-row">

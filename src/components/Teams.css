@@ -258,6 +258,8 @@
 }
 .btn-remove-media:hover { background: #dc3545; }
 
+.assist-item { border-left-color: #4caf50 !important; }
+
 .result-actions { display: flex; gap: 14px; justify-content: flex-end; }
 
 @media (max-width: 768px) {
