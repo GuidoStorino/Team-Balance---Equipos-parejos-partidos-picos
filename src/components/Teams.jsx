@@ -2,35 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import './Teams.css';
 import { saveMediaFile, deleteMediaFile } from '../mediaDB';
 
-const FUNNY_NAMES_ES = [
-  'Los Vainillas','Heladeros del Conurbano','Menos Patada que una Pila',
-  'Menos Centro que Don Bosco','Los Descosidos','Pelota Dividida FC',
-  'Los Troncos United','Sporting de Tobillo','Inter de Patio','Real Descenso',
-  'Atlético Cancha de Tierra','Los Sin Técnica','Deportivo Puntapié',
-  'Racing de Esquina','Manchester sin City','FC Barreneta',
-  'Juventus de Barrio','Los Mismos de Siempre','Gambeta al Banco',
-  'Los Palo y a la Bolsa','Deportivo Tobillo Roto','Los Que Nunca Entrenan',
-];
-const FUNNY_NAMES_EN = [
-  'The Rusty Boots','Offside United','The Sunday Warriors','No Touch FC',
-  'Accidental Goals','The Sliding Tackles','Half-Time Legends','Ankle Busters',
-  'The Backyard Ballers','One Touch Wonders','The Lazy Strikers','Mud United',
-];
-const FUNNY_NAMES_IT = [
-  'I Piedi Storti','Niente Tecnica FC','Gli Inciampatori','Calci nel Nulla',
-  'Il Tempo Scaduto','I Fuorigioco','Sporting Panchina','Real Ginocchia',
-];
-const FUNNY_NAMES_PT = [
-  'Os Caneleiros','Pelé da Várzea FC','Chuteira Grossa','Os Sem Técnica',
-  'Esportivo Tornozelo','Futebol de Boteco','Real Gambá','Os Zagueiros',
-];
-
-function getFunnyNames(lang) {
-  if (lang === 'en') return FUNNY_NAMES_EN;
-  if (lang === 'it') return FUNNY_NAMES_IT;
-  if (lang === 'pt') return FUNNY_NAMES_PT;
-  return FUNNY_NAMES_ES;
-}
+const FUNNY_NAMES = {
+  es: ['Los Vainillas','Heladeros del Conurbano','Menos Patada que una Pila','Menos Centro que Don Bosco','Los Descosidos','Pelota Dividida FC','Los Troncos United','Sporting de Tobillo','Inter de Patio','Real Descenso','Atlético Cancha de Tierra','Los Sin Técnica','Deportivo Puntapié','Racing de Esquina','Manchester sin City','FC Barreneta','Juventus de Barrio','Los Mismos de Siempre','Gambeta al Banco','Los Palo y a la Bolsa'],
+  en: ['The Rusty Boots','Offside United','The Sunday Warriors','No Touch FC','Accidental Goals','The Sliding Tackles','Half-Time Legends','Ankle Busters','The Backyard Ballers','One Touch Wonders','The Lazy Strikers','Mud United'],
+  it: ['I Piedi Storti','Niente Tecnica FC','Gli Inciampatori','Calci nel Nulla','Il Tempo Scaduto','I Fuorigioco','Sporting Panchina','Real Ginocchia'],
+  pt: ['Os Caneleiros','Pelé da Várzea FC','Chuteira Grossa','Os Sem Técnica','Esportivo Tornozelo','Futebol de Boteco','Real Gambá','Os Zagueiros'],
+};
 
 function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch, settings, t }) {
   const [team1Name, setTeam1Name] = useState('');
@@ -39,13 +16,10 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
   const [team1Goals, setTeam1Goals] = useState(0);
   const [team2Goals, setTeam2Goals] = useState(0);
   const [scorers, setScorers] = useState([]);
-  const [assists, setAssists] = useState([]);
   const [highlights, setHighlights] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
   const [newScorerTeam, setNewScorerTeam] = useState('1');
   const [newScorerPlayer, setNewScorerPlayer] = useState('');
-  const [newAssistTeam, setNewAssistTeam] = useState('1');
-  const [newAssistPlayer, setNewAssistPlayer] = useState('');
   const [showPendingConfirm, setShowPendingConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -59,7 +33,7 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
       setTeam1Name(teams.team1Name);
       setTeam2Name(teams.team2Name);
     } else if (useFunnyNames) {
-      const pool = getFunnyNames(lang);
+      const pool = FUNNY_NAMES[lang] || FUNNY_NAMES.es;
       const shuffled = [...pool].sort(() => 0.5 - Math.random());
       setTeam1Name(shuffled[0]);
       setTeam2Name(shuffled[1] || shuffled[0] + ' 2');
@@ -78,7 +52,6 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
   const handleBack = () => setShowPendingConfirm(true);
   const handleSavePending = () => { savePendingMatch({ team1: teams.team1, team2: teams.team2, team1Name, team2Name }); setView('home'); };
   const handleDiscardAndBack = () => { clearCurrentTeams(); setView('create-match'); };
-  const handlePlayedMatch = () => setShowMatchResult(true);
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
@@ -108,7 +81,8 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
       date: new Date().toISOString(),
       team1: { name: team1Name, players: teams.team1.map(p => p.name), goals: team1Goals },
       team2: { name: team2Name, players: teams.team2.map(p => p.name), goals: team2Goals },
-      scorers, assists, highlights,
+      scorers,
+      highlights,
       media: mediaFiles.map(m => ({ id: m.id, name: m.name, type: m.type })),
     };
     saveMatch(matchData);
@@ -116,10 +90,12 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
   };
 
   const handleCancelMatch = () => { clearCurrentTeams(); setView('home'); };
-  const handleAddScorer = () => { if (!newScorerPlayer) return; setScorers([...scorers, { team: newScorerTeam, player: newScorerPlayer }]); setNewScorerPlayer(''); };
+  const handleAddScorer = () => {
+    if (!newScorerPlayer) return;
+    setScorers([...scorers, { team: newScorerTeam, player: newScorerPlayer }]);
+    setNewScorerPlayer('');
+  };
   const handleRemoveScorer = (i) => setScorers(scorers.filter((_, idx) => idx !== i));
-  const handleAddAssist = () => { if (!newAssistPlayer) return; setAssists([...assists, { team: newAssistTeam, player: newAssistPlayer }]); setNewAssistPlayer(''); };
-  const handleRemoveAssist = (i) => setAssists(assists.filter((_, idx) => idx !== i));
 
   const distributeTeam = (teamPlayers) => {
     const size = teamPlayers.length;
@@ -162,24 +138,23 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
             <div className="score-input">
               <div className="team-score">
                 <label>{team1Name}</label>
-                <input type="number" min="0" value={team1Goals} onChange={(e) => setTeam1Goals(Number(e.target.value))} />
+                <input type="number" min="0" value={team1Goals} onChange={e => setTeam1Goals(Number(e.target.value))} />
               </div>
               <div className="score-separator">-</div>
               <div className="team-score">
                 <label>{team2Name}</label>
-                <input type="number" min="0" value={team2Goals} onChange={(e) => setTeam2Goals(Number(e.target.value))} />
+                <input type="number" min="0" value={team2Goals} onChange={e => setTeam2Goals(Number(e.target.value))} />
               </div>
             </div>
 
-            {/* Scorers */}
             <div className="scorers-section">
               <h4>{t.scorers}</h4>
               <div className="add-scorer">
-                <select value={newScorerTeam} onChange={(e) => setNewScorerTeam(e.target.value)}>
+                <select value={newScorerTeam} onChange={e => setNewScorerTeam(e.target.value)}>
                   <option value="1">{team1Name}</option>
                   <option value="2">{team2Name}</option>
                 </select>
-                <select value={newScorerPlayer} onChange={(e) => setNewScorerPlayer(e.target.value)}>
+                <select value={newScorerPlayer} onChange={e => setNewScorerPlayer(e.target.value)}>
                   <option value="">{t.selectPlayer}</option>
                   {(newScorerTeam === '1' ? teams.team1 : teams.team2).map(p => (
                     <option key={p.name} value={p.name}>{p.name}</option>
@@ -199,44 +174,16 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
               )}
             </div>
 
-            {/* Assists */}
-            <div className="scorers-section">
-              <h4>{t.assists}</h4>
-              <div className="add-scorer">
-                <select value={newAssistTeam} onChange={(e) => setNewAssistTeam(e.target.value)}>
-                  <option value="1">{team1Name}</option>
-                  <option value="2">{team2Name}</option>
-                </select>
-                <select value={newAssistPlayer} onChange={(e) => setNewAssistPlayer(e.target.value)}>
-                  <option value="">{t.selectPlayer}</option>
-                  {(newAssistTeam === '1' ? teams.team1 : teams.team2).map(p => (
-                    <option key={p.name} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-                <button className="btn-primary btn-small" onClick={handleAddAssist}>{t.addAssist}</button>
-              </div>
-              {assists.length > 0 && (
-                <div className="scorers-list">
-                  {assists.map((a, i) => (
-                    <div key={i} className="scorer-item assist-item">
-                      <span>🎯 {a.player} ({a.team === '1' ? team1Name : team2Name})</span>
-                      <button className="btn-remove" onClick={() => handleRemoveAssist(i)}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Highlights + media */}
             <div className="highlights-section">
               <h4>{t.highlights}</h4>
-              <textarea value={highlights} onChange={(e) => setHighlights(e.target.value)}
+              <textarea value={highlights} onChange={e => setHighlights(e.target.value)}
                 placeholder={t.highlightsPlaceholder} rows="3" />
               <div className="media-upload">
                 <button className="btn-media-upload" onClick={() => fileInputRef.current?.click()}>
                   {t.addMedia}
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
+                <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple
+                  onChange={handleFileSelect} style={{ display: 'none' }} />
               </div>
               {mediaFiles.length > 0 && (
                 <div className="media-preview">
@@ -271,13 +218,13 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
         <div className="team-names-section">
           <div className="team-name-input team-1-name">
             <label>{t.team1}</label>
-            <input type="text" value={team1Name} onChange={(e) => setTeam1Name(e.target.value)}
+            <input type="text" value={team1Name} onChange={e => setTeam1Name(e.target.value)}
               style={{ borderBottomColor: team1Color }} />
           </div>
           <div className="vs-separator">VS</div>
           <div className="team-name-input team-2-name">
             <label>{t.team2}</label>
-            <input type="text" value={team2Name} onChange={(e) => setTeam2Name(e.target.value)}
+            <input type="text" value={team2Name} onChange={e => setTeam2Name(e.target.value)}
               style={{ borderBottomColor: team2Color }} />
           </div>
         </div>
@@ -320,7 +267,7 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
 
         <div className="actions-section">
           <button className="btn-danger" onClick={handleCancelMatch}>{t.cancelMatch}</button>
-          <button className="btn-primary" onClick={handlePlayedMatch}>{t.matchPlayed}</button>
+          <button className="btn-primary" onClick={() => setShowMatchResult(true)}>{t.matchPlayed}</button>
         </div>
       </div>
     </div>

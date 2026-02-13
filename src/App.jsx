@@ -228,6 +228,7 @@ function App() {
             setView={setView}
             matches={matches}
             deleteMatch={deleteMatch}
+            saveMatch={saveMatch}
             ownerPlayer={ownerPlayer}
             pendingMatches={pendingMatches}
             deletePendingMatch={deletePendingMatch}

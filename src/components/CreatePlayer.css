@@ -187,8 +187,10 @@
   padding: 6px 12px; background: var(--off-white);
   border-radius: 6px; font-size: 0.85rem; cursor: pointer;
   transition: all 0.2s ease; user-select: none;
+  color: var(--dark); font-weight: 600;
+  border: 1px solid var(--light-gray);
 }
-.folder-checkbox:hover { background: var(--light-gray); }
+.folder-checkbox:hover { background: #dde8dd; border-color: var(--pitch-light); color: var(--pitch-green); }
 .folder-checkbox input[type="checkbox"] { width: auto; cursor: pointer; }
 
 .player-actions { display: flex; gap: 8px; margin-top: 4px; }
