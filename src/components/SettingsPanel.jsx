@@ -117,7 +117,7 @@ function SettingsPanel({ isOpen, onClose, settings, onSettingsChange, ownerPlaye
 
         <div className="settings-body">
 
-          {/* GENERAL — Language */}
+          {/* ── GENERAL — Language + Dark Mode ── */}
           {activeSection === 'general' && (
             <div className="settings-section">
               <div className="settings-row-label">{t.language}</div>
@@ -132,6 +132,17 @@ function SettingsPanel({ isOpen, onClose, settings, onSettingsChange, ownerPlaye
                     <span className="lang-label">{lang.label}</span>
                   </button>
                 ))}
+              </div>
+
+              <div className="settings-row" style={{ marginTop: '24px' }}>
+                <div className="settings-row-left">
+                  <div className="settings-row-label">{t.darkMode || 'Modo Oscuro'}</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={settings.darkMode} 
+                    onChange={() => onSettingsChange({ ...settings, darkMode: !settings.darkMode })} />
+                  <span className="toggle-slider"></span>
+                </label>
               </div>
             </div>
           )}

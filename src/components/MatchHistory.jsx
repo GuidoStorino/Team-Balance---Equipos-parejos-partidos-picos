@@ -14,18 +14,72 @@ async function loadMatchMedia(mediaItems) {
 }
 
 // ── Add Past Match form ─────────────────────────────────────────
-function AddPastMatch({ onSave, onCancel, t }) {
+function AddPastMatch({ onSave, onCancel, t, players }) {
   const today = new Date().toISOString().slice(0, 10);
   const [team1Name, setTeam1Name] = useState('');
   const [team2Name, setTeam2Name] = useState('');
   const [team1Goals, setTeam1Goals] = useState(0);
   const [team2Goals, setTeam2Goals] = useState(0);
+  const [team1Players, setTeam1Players] = useState([]);
+  const [team2Players, setTeam2Players] = useState([]);
   const [matchDate, setMatchDate] = useState(today);
   const [highlights, setHighlights] = useState('');
   const [scorers, setScorers] = useState('');   // free-text goleadores
   const [mediaFiles, setMediaFiles] = useState([]);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  // Player autocomplete states
+  const [team1Input, setTeam1Input] = useState('');
+  const [team2Input, setTeam2Input] = useState('');
+  const [team1Suggestions, setTeam1Suggestions] = useState([]);
+  const [team2Suggestions, setTeam2Suggestions] = useState([]);
+
+  const handleTeam1InputChange = (value) => {
+    setTeam1Input(value);
+    if (value.length >= 2) {
+      const filtered = players
+        .filter(p => p.name.toLowerCase().includes(value.toLowerCase()))
+        .filter(p => !team1Players.includes(p.name))
+        .slice(0, 5);
+      setTeam1Suggestions(filtered);
+    } else {
+      setTeam1Suggestions([]);
+    }
+  };
+
+  const handleTeam2InputChange = (value) => {
+    setTeam2Input(value);
+    if (value.length >= 2) {
+      const filtered = players
+        .filter(p => p.name.toLowerCase().includes(value.toLowerCase()))
+        .filter(p => !team2Players.includes(p.name))
+        .slice(0, 5);
+      setTeam2Suggestions(filtered);
+    } else {
+      setTeam2Suggestions([]);
+    }
+  };
+
+  const addPlayerToTeam1 = (playerName) => {
+    setTeam1Players([...team1Players, playerName]);
+    setTeam1Input('');
+    setTeam1Suggestions([]);
+  };
+
+  const addPlayerToTeam2 = (playerName) => {
+    setTeam2Players([...team2Players, playerName]);
+    setTeam2Input('');
+    setTeam2Suggestions([]);
+  };
+
+  const removePlayerFromTeam1 = (playerName) => {
+    setTeam1Players(team1Players.filter(p => p !== playerName));
+  };
+
+  const removePlayerFromTeam2 = (playerName) => {
+    setTeam2Players(team2Players.filter(p => p !== playerName));
+  };
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
@@ -54,8 +108,8 @@ function AddPastMatch({ onSave, onCancel, t }) {
     const matchData = {
       id: Date.now(),
       date: new Date(matchDate + 'T12:00:00').toISOString(),
-      team1: { name: team1Name.trim(), players: [], goals: Number(team1Goals) },
-      team2: { name: team2Name.trim(), players: [], goals: Number(team2Goals) },
+      team1: { name: team1Name.trim(), players: team1Players, goals: Number(team1Goals) },
+      team2: { name: team2Name.trim(), players: team2Players, goals: Number(team2Goals) },
       scorers: scorers.trim()
         ? scorers.split(',').map(s => ({ team: '?', player: s.trim() })).filter(s => s.player)
         : [],
@@ -90,6 +144,43 @@ function AddPastMatch({ onSave, onCancel, t }) {
               <button onClick={() => setTeam1Goals(team1Goals + 1)}>+</button>
             </div>
           </div>
+
+          {/* Player autocomplete */}
+          <div className="player-autocomplete-section">
+            <label>{t.addPlayers || 'Jugadores'}</label>
+            <div className="autocomplete-wrapper">
+              <input
+                type="text"
+                value={team1Input}
+                onChange={(e) => handleTeam1InputChange(e.target.value)}
+                placeholder={t.typePlayerName || 'Escribe el nombre...'}
+                className="autocomplete-input"
+              />
+              {team1Suggestions.length > 0 && (
+                <div className="autocomplete-dropdown">
+                  {team1Suggestions.map(player => (
+                    <div
+                      key={player.name}
+                      className="autocomplete-item"
+                      onClick={() => addPlayerToTeam1(player.name)}
+                    >
+                      {player.isOwner && '👑 '}{player.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {team1Players.length > 0 && (
+              <div className="selected-players-list">
+                {team1Players.map(name => (
+                  <div key={name} className="selected-player-chip">
+                    <span>{name}</span>
+                    <button onClick={() => removePlayerFromTeam1(name)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="past-vs">VS</div>
@@ -105,6 +196,43 @@ function AddPastMatch({ onSave, onCancel, t }) {
               <span>{team2Goals}</span>
               <button onClick={() => setTeam2Goals(team2Goals + 1)}>+</button>
             </div>
+          </div>
+
+          {/* Player autocomplete */}
+          <div className="player-autocomplete-section">
+            <label>{t.addPlayers || 'Jugadores'}</label>
+            <div className="autocomplete-wrapper">
+              <input
+                type="text"
+                value={team2Input}
+                onChange={(e) => handleTeam2InputChange(e.target.value)}
+                placeholder={t.typePlayerName || 'Escribe el nombre...'}
+                className="autocomplete-input"
+              />
+              {team2Suggestions.length > 0 && (
+                <div className="autocomplete-dropdown">
+                  {team2Suggestions.map(player => (
+                    <div
+                      key={player.name}
+                      className="autocomplete-item"
+                      onClick={() => addPlayerToTeam2(player.name)}
+                    >
+                      {player.isOwner && '👑 '}{player.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {team2Players.length > 0 && (
+              <div className="selected-players-list">
+                {team2Players.map(name => (
+                  <div key={name} className="selected-player-chip">
+                    <span>{name}</span>
+                    <button onClick={() => removePlayerFromTeam2(name)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -151,13 +279,17 @@ function AddPastMatch({ onSave, onCancel, t }) {
 }
 
 // ── Main MatchHistory ───────────────────────────────────────────
-function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, pendingMatches, deletePendingMatch, resumePendingMatch, t }) {
+function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, players, pendingMatches, deletePendingMatch, resumePendingMatch, t }) {
   const [expandedMatch, setExpandedMatch] = useState(null);
   const [activeTab, setActiveTab] = useState('history');
   const [blobUrls, setBlobUrls] = useState({});
   const [lightbox, setLightbox] = useState(null);
   const [showStreakPopup, setShowStreakPopup] = useState(false);
   const [streakShownFor, setStreakShownFor] = useState(null);
+  const [filterPlayer, setFilterPlayer] = useState('all');
+  const [filterResult, setFilterResult] = useState('all'); // 'all' | 'won' | 'drew' | 'lost'
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   // Load media blobs when a match is expanded
   useEffect(() => {
@@ -245,6 +377,89 @@ function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, p
   const sortedMatches = [...matches].sort((a, b) => new Date(b.date) - new Date(a.date));
   const sortedPending = [...pendingMatches].sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  // ── Rivalry detection ──
+  const detectRivalries = () => {
+    const rivalryMap = {};
+    
+    matches.forEach(match => {
+      if (match.manualEntry) return; // Skip manual entries
+      
+      const team1IsSaved = match.team1?.isSaved || false;
+      const team2IsSaved = match.team2?.isSaved || false;
+      
+      let rivalryKey;
+      
+      // CASO 3: Al menos uno es equipo guardado → detecta por nombre
+      if (team1IsSaved || team2IsSaved) {
+        const name1 = match.team1.name;
+        const name2 = match.team2.name;
+        rivalryKey = [name1, name2].sort().join(' VS ');
+      } 
+      // CASO 2: Ninguno es equipo guardado → detecta por jugadores
+      else {
+        const team1Key = [...match.team1.players].sort().join(',');
+        const team2Key = [...match.team2.players].sort().join(',');
+        rivalryKey = [team1Key, team2Key].sort().join(' VS ');
+      }
+      
+      if (!rivalryMap[rivalryKey]) {
+        rivalryMap[rivalryKey] = {
+          team1Players: match.team1.players,
+          team2Players: match.team2.players,
+          team1Name: match.team1.name,
+          team2Name: match.team2.name,
+          matches: [],
+          team1Wins: 0,
+          team2Wins: 0,
+          draws: 0,
+          isSavedTeamRivalry: team1IsSaved || team2IsSaved,
+        };
+      }
+      
+      rivalryMap[rivalryKey].matches.push(match);
+      if (match.team1.goals > match.team2.goals) rivalryMap[rivalryKey].team1Wins++;
+      else if (match.team2.goals > match.team1.goals) rivalryMap[rivalryKey].team2Wins++;
+      else rivalryMap[rivalryKey].draws++;
+    });
+    
+    // Filter only rivalries with 2+ matches
+    return Object.values(rivalryMap).filter(r => r.matches.length >= 2);
+  };
+
+  const rivalries = detectRivalries();
+
+  // ── Filter matches ──
+  const getFilteredMatches = () => {
+    let filtered = sortedMatches;
+    
+    // Filter by player
+    if (filterPlayer !== 'all') {
+      filtered = filtered.filter(m => 
+        m.team1.players.includes(filterPlayer) || m.team2.players.includes(filterPlayer)
+      );
+    }
+    
+    // Filter by result
+    if (filterResult !== 'all' && ownerPlayer) {
+      filtered = filtered.filter(m => {
+        const result = getOwnerResult(m);
+        return result === filterResult;
+      });
+    }
+    
+    // Filter by date range
+    if (filterDateFrom) {
+      filtered = filtered.filter(m => new Date(m.date) >= new Date(filterDateFrom));
+    }
+    if (filterDateTo) {
+      filtered = filtered.filter(m => new Date(m.date) <= new Date(filterDateTo + 'T23:59:59'));
+    }
+    
+    return filtered;
+  };
+
+  const filteredMatches = getFilteredMatches();
+
   // ── Lightbox ──
   const LightboxModal = () => {
     if (!lightbox) return null;
@@ -295,6 +510,9 @@ function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, p
             ⏳ {t.pendingMatches}
             {pendingMatches.length > 0 && <span className="tab-badge">{pendingMatches.length}</span>}
           </button>
+          <button className={`tab-btn ${activeTab === 'rivalries' ? 'active' : ''}`} onClick={() => setActiveTab('rivalries')}>
+            🔥 {t.rivalries || 'Rivalidades'} ({rivalries.length})
+          </button>
           <button className={`tab-btn ${activeTab === 'add' ? 'active' : ''}`} onClick={() => setActiveTab('add')}>
             ➕ {t.addPastMatch}
           </button>
@@ -337,9 +555,52 @@ function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, p
                   )}
                 </div>
 
+                {/* Filters */}
+                <div className="filters-panel">
+                  <div className="filter-group">
+                    <label>{t.filterByPlayer || 'Filtrar por jugador'}:</label>
+                    <select value={filterPlayer} onChange={e => setFilterPlayer(e.target.value)}>
+                      <option value="all">{t.allPlayers || 'Todos'}</option>
+                      {[...new Set(matches.flatMap(m => [...m.team1.players, ...m.team2.players]))].sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {ownerPlayer && (
+                    <div className="filter-group">
+                      <label>{t.filterByResult || 'Resultado'}:</label>
+                      <select value={filterResult} onChange={e => setFilterResult(e.target.value)}>
+                        <option value="all">{t.allResults || 'Todos'}</option>
+                        <option value="won">{t.won}</option>
+                        <option value="drew">{t.drew}</option>
+                        <option value="lost">{t.lost}</option>
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div className="filter-group">
+                    <label>{t.filterByDate || 'Desde'}:</label>
+                    <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+                  </div>
+                  
+                  <div className="filter-group">
+                    <label>{t.filterByDateTo || 'Hasta'}:</label>
+                    <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+                  </div>
+                  
+                  {(filterPlayer !== 'all' || filterResult !== 'all' || filterDateFrom || filterDateTo) && (
+                    <button className="btn-clear-filters" onClick={() => {
+                      setFilterPlayer('all'); setFilterResult('all'); setFilterDateFrom(''); setFilterDateTo('');
+                    }}>
+                      ✕ {t.clearFilters || 'Limpiar'}
+                    </button>
+                  )}
+                </div>
+
                 {/* Match cards */}
                 <div className="matches-list">
-                  {sortedMatches.map(match => {
+                  {filteredMatches.map(match => {
                     const isExpanded = expandedMatch === match.id;
                     const result = getOwnerResult(match);
                     const resultLabel = getOwnerResultLabel(result);
@@ -486,11 +747,85 @@ function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, p
           </>
         )}
 
+        {/* ── RIVALRIES ── */}
+        {activeTab === 'rivalries' && (
+          <>
+            {rivalries.length === 0 ? (
+              <div className="empty-history">
+                <div className="empty-icon">🔥</div>
+                <h3>{t.noRivalries || 'No hay rivalidades detectadas'}</h3>
+                <p>{t.noRivalriesText || 'Las rivalidades se detectan cuando los mismos jugadores se enfrentan 2+ veces'}</p>
+              </div>
+            ) : (
+              <div className="rivalries-list">
+                {rivalries.map((rivalry, idx) => (
+                  <div key={idx} className="rivalry-card">
+                    <div className="rivalry-header">
+                      <div className="rivalry-team">
+                        <div className="rivalry-team-name">
+                          {rivalry.team1Name}
+                          {rivalry.isSavedTeamRivalry && <span className="saved-team-badge">🏆</span>}
+                        </div>
+                        <div className="rivalry-players-mini">
+                          {rivalry.team1Players.slice(0, 3).join(', ')}
+                          {rivalry.team1Players.length > 3 && ` +${rivalry.team1Players.length - 3}`}
+                        </div>
+                      </div>
+                      <div className="rivalry-vs">VS</div>
+                      <div className="rivalry-team">
+                        <div className="rivalry-team-name">
+                          {rivalry.team2Name}
+                          {rivalry.isSavedTeamRivalry && <span className="saved-team-badge">🏆</span>}
+                        </div>
+                        <div className="rivalry-players-mini">
+                          {rivalry.team2Players.slice(0, 3).join(', ')}
+                          {rivalry.team2Players.length > 3 && ` +${rivalry.team2Players.length - 3}`}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="rivalry-stats">
+                      <div className="rivalry-record">
+                        <span className="record-label">{t.headToHead || 'Historial'}:</span>
+                        <div className="record-numbers">
+                          <span className="record-win">{rivalry.team1Wins}V</span>
+                          <span className="record-draw">{rivalry.draws}E</span>
+                          <span className="record-loss">{rivalry.team2Wins}V</span>
+                        </div>
+                      </div>
+                      <div className="rivalry-matches-count">
+                        {rivalry.matches.length} {t.playedMatches || 'partidos'}
+                      </div>
+                    </div>
+                    
+                    <div className="rivalry-recent">
+                      <div className="rivalry-recent-label">{t.recentMatches || 'Últimos partidos'}:</div>
+                      <div className="rivalry-recent-results">
+                        {rivalry.matches.slice(-5).reverse().map((match, mi) => {
+                          const winner = match.team1.goals > match.team2.goals ? 1 
+                            : match.team2.goals > match.team1.goals ? 2 : 0;
+                          return (
+                            <span key={mi} className={`result-dot ${winner === 1 ? 'win-t1' : winner === 2 ? 'win-t2' : 'draw'}`}
+                              title={`${match.team1.goals}-${match.team2.goals}`}>
+                              {match.team1.goals}-{match.team2.goals}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
         {/* ── ADD PAST MATCH ── */}
         {activeTab === 'add' && (
           <AddPastMatch
             onSave={handleSavePastMatch}
             onCancel={() => setActiveTab('history')}
+            players={players}
             t={t}
           />
         )}

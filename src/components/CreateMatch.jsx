@@ -170,8 +170,10 @@ function CreateMatch({ setView, players, folders, savedTeams, createTeams, setti
       goalkeepers: gks,
       team1Name: team1Selected?.name,
       team1Color: team1Selected?.color,
+      team1IsSaved: !!team1Selected,
       team2Name: team2Selected?.name,
       team2Color: team2Selected?.color,
+      team2IsSaved: !!team2Selected,
     };
   };
 

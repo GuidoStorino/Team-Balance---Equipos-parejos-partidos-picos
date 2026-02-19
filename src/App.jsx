@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   balanceMode: 'total', // 'total' | 'defense' | 'attack'
   team1Color: '#ffd700',
   team2Color: '#ff6b35',
+  darkMode: false,
 };
 
 function App() {
@@ -61,6 +62,15 @@ function App() {
   useEffect(() => { localStorage.setItem('teamBalancePending', JSON.stringify(pendingMatches)); }, [pendingMatches]);
   useEffect(() => { if (ownerPlayer) localStorage.setItem('teamBalanceOwner', JSON.stringify(ownerPlayer)); }, [ownerPlayer]);
   useEffect(() => { localStorage.setItem('teamBalanceSettings', JSON.stringify(settings)); }, [settings]);
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [settings.darkMode]);
 
   const handleOnboardingComplete = (playerData) => {
     const ownerData = { ...playerData, isOwner: true };
@@ -253,6 +263,7 @@ function App() {
             deleteMatch={deleteMatch}
             saveMatch={saveMatch}
             ownerPlayer={ownerPlayer}
+            players={players}
             pendingMatches={pendingMatches}
             deletePendingMatch={deletePendingMatch}
             resumePendingMatch={resumePendingMatch}

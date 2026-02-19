@@ -15,6 +15,22 @@
   --shadow-strong: rgba(0, 0, 0, 0.3);
 }
 
+/* Dark mode (modo noche) */
+body.dark-mode {
+  --pitch-green: #1a1f2e;
+  --pitch-light: #252d3f;
+  --grass-dark: #0f1419;
+  --accent-yellow: #ffa726;
+  --accent-orange: #ff6b35;
+  --white: #e8eaed;
+  --off-white: #2a303c;
+  --dark: #0a0e1a;
+  --gray: #8892ab;
+  --light-gray: #3d4556;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-strong: rgba(0, 0, 0, 0.6);
+}
+
 * {
   margin: 0;
   padding: 0;
