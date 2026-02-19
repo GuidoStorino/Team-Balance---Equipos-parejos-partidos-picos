@@ -9,6 +9,100 @@ const FUNNY_NAMES = {
   pt: ['Os Caneleiros','Pelé da Várzea FC','Chuteira Grossa','Os Sem Técnica','Esportivo Tornozelo','Futebol de Boteco','Real Gambá','Os Zagueiros'],
 };
 
+// ── Position assignment based on skills ──
+function assignPosition(player, isGK) {
+  if (isGK) return 'GK';
+  // DEF: alta defensa, MID: alto pase+gambeta, FWD: alta pegada+velocidad
+  const defScore = player.defensa;
+  const midScore = (player.pase + player.gambeta) / 2;
+  const fwdScore = (player.pegada + player.velocidad) / 2;
+  const max = Math.max(defScore, midScore, fwdScore);
+  if (max === defScore) return 'DEF';
+  if (max === midScore) return 'MID';
+  return 'FWD';
+}
+
+function getPositionIcon(position) {
+  if (position === 'GK')  return '🧤';
+  if (position === 'DEF') return '🛡️';
+  if (position === 'MID') return '⚽';
+  return '⚡'; // FWD
+}
+
+// ── Formation assignment ──
+function getFormation(size) {
+  // Returns [DEF, MID, FWD] counts. GK is always 1 if present.
+  if (size === 1) return [1, 0, 0];  // solo GK
+  if (size === 2) return [1, 0, 1];  // 1 DEF, 1 FWD
+  if (size === 3) return [1, 1, 1];  // 1-1-1
+  if (size === 4) return [2, 1, 1];  // 2-1-1
+  if (size === 5) return [2, 0, 2];  // 2-2
+  if (size === 6) return [2, 2, 1];  // 2-2-1
+  if (size === 7) return [3, 1, 2];  // 3-1-2
+  if (size === 8) return [3, 2, 2];  // 3-2-2
+  if (size === 9) return [3, 3, 2];  // 3-3-2
+  if (size === 10) return [4, 3, 2]; // 4-3-2
+  return [4, 4, 2]; // 4-4-2 for 11+
+}
+
+// Distribute players into rows based on formation
+function distributeFormation(teamPlayers, goalkeepers) {
+  if (teamPlayers.length === 0) return [];
+  
+  const gkPlayers = teamPlayers.filter(p => goalkeepers.includes(p.name));
+  const fieldPlayers = teamPlayers.filter(p => !goalkeepers.includes(p.name));
+
+  // Assign natural positions to field players
+  const withPositions = fieldPlayers.map(p => ({
+    ...p,
+    naturalPosition: assignPosition(p, false),
+    defScore: p.defensa,
+    midScore: (p.pase + p.gambeta) / 2,
+    fwdScore: (p.pegada + p.velocidad) / 2,
+  }));
+
+  const defs = withPositions.filter(p => p.naturalPosition === 'DEF').sort((a, b) => b.defScore - a.defScore);
+  const mids = withPositions.filter(p => p.naturalPosition === 'MID').sort((a, b) => b.midScore - a.midScore);
+  const fwds = withPositions.filter(p => p.naturalPosition === 'FWD').sort((a, b) => b.fwdScore - a.fwdScore);
+
+  const [needDef, needMid, needFwd] = getFormation(fieldPlayers.length);
+  
+  // Fill positions, redistributing overflow
+  const finalDefs = defs.slice(0, needDef);
+  const finalMids = mids.slice(0, needMid);
+  const finalFwds = fwds.slice(0, needFwd);
+
+  let overflow = [
+    ...defs.slice(needDef),
+    ...mids.slice(needMid),
+    ...fwds.slice(needFwd),
+  ];
+
+  // Redistribute overflow by priority
+  while (overflow.length > 0) {
+    if (finalDefs.length < needDef) finalDefs.push(overflow.shift());
+    else if (finalMids.length < needMid) finalMids.push(overflow.shift());
+    else if (finalFwds.length < needFwd) finalFwds.push(overflow.shift());
+    else break;
+  }
+
+  // If still overflow, add to mid
+  finalMids.push(...overflow);
+
+  // Assign FINAL field position for icon rendering
+  finalDefs.forEach(p => p.position = 'DEF');
+  finalMids.forEach(p => p.position = 'MID');
+  finalFwds.forEach(p => p.position = 'FWD');
+
+  const rows = [];
+  if (gkPlayers.length > 0) rows.push(gkPlayers.map(p => ({ ...p, position: 'GK' })));
+  if (finalDefs.length > 0) rows.push(finalDefs);
+  if (finalMids.length > 0) rows.push(finalMids);
+  if (finalFwds.length > 0) rows.push(finalFwds);
+  
+  return rows;
+}
+
 function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch, settings, t }) {
   const [team1Name, setTeam1Name] = useState('');
   const [team2Name, setTeam2Name] = useState('');
@@ -23,8 +117,8 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
   const [showPendingConfirm, setShowPendingConfirm] = useState(false);
   const fileInputRef = useRef(null);
 
-  const team1Color = settings?.team1Color || '#ffd700';
-  const team2Color = settings?.team2Color || '#ff6b35';
+  const team1Color = teams?.team1Color || settings?.team1Color || '#ffd700';
+  const team2Color = teams?.team2Color || settings?.team2Color || '#ff6b35';
   const useFunnyNames = settings?.funnyNames !== false;
   const lang = settings?.lang || 'es';
 
@@ -97,16 +191,9 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
   };
   const handleRemoveScorer = (i) => setScorers(scorers.filter((_, idx) => idx !== i));
 
-  const distributeTeam = (teamPlayers) => {
-    const size = teamPlayers.length;
-    if (size <= 3) return [teamPlayers];
-    if (size <= 5) { const m = Math.floor(size / 2); return [teamPlayers.slice(0, m), teamPlayers.slice(m)]; }
-    const third = Math.floor(size / 3);
-    return [teamPlayers.slice(0, third), teamPlayers.slice(third, third * 2), teamPlayers.slice(third * 2)];
-  };
-
-  const t1Rows = distributeTeam(teams.team1);
-  const t2Rows = distributeTeam(teams.team2);
+  // Get formations with GK info from teams object
+  const t1Rows = distributeFormation(teams.team1, teams.goalkeepers || []);
+  const t2Rows = distributeFormation(teams.team2, teams.goalkeepers || []);
 
   if (showPendingConfirm) {
     return (
@@ -235,14 +322,17 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
               <div className="team-label" style={{ color: team1Color }}>{team1Name}</div>
               {t1Rows.map((row, ri) => (
                 <div key={ri} className="player-row">
-                  {row.map(player => (
-                    <div key={player.name} className={`player-marker ${player.isOwner ? 'player-owner' : ''}`}>
-                      <div className="player-icon" style={{ borderColor: team1Color }}>
-                        {player.isOwner ? '👑' : '⚽'}
+                  {row.map(player => {
+                    const icon = player.isOwner ? '👑' : getPositionIcon(player.position);
+                    return (
+                      <div key={player.name} className={`player-marker ${player.isOwner ? 'player-owner' : ''}`}>
+                        <div className="player-icon" style={{ borderColor: team1Color }}>
+                          {icon}
+                        </div>
+                        <span className="player-name-tag">{player.name}</span>
                       </div>
-                      <span className="player-name-tag">{player.name}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -250,14 +340,17 @@ function Teams({ setView, teams, clearCurrentTeams, saveMatch, savePendingMatch,
             <div className="team-side team-side-2">
               {[...t2Rows].reverse().map((row, ri) => (
                 <div key={ri} className="player-row">
-                  {row.map(player => (
-                    <div key={player.name} className={`player-marker player-t2 ${player.isOwner ? 'player-owner' : ''}`}>
-                      <div className="player-icon" style={{ borderColor: team2Color }}>
-                        {player.isOwner ? '👑' : '⚽'}
+                  {row.map(player => {
+                    const icon = player.isOwner ? '👑' : getPositionIcon(player.position);
+                    return (
+                      <div key={player.name} className={`player-marker player-t2 ${player.isOwner ? 'player-owner' : ''}`}>
+                        <div className="player-icon" style={{ borderColor: team2Color }}>
+                          {icon}
+                        </div>
+                        <span className="player-name-tag">{player.name}</span>
                       </div>
-                      <span className="player-name-tag">{player.name}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
               <div className="team-label" style={{ color: team2Color }}>{team2Name}</div>

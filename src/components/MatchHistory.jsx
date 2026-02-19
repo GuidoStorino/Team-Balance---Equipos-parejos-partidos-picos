@@ -323,12 +323,10 @@ function MatchHistory({ setView, matches, deleteMatch, saveMatch, ownerPlayer, p
                       <div className="stat-value">{ownerGoals}</div>
                       <div className="stat-label">{t.yourGoals}</div>
                     </div>
-                    {ownerPlayer && (
-                      <div className={`stat-card ${consecutiveWins >= 3 ? 'stat-streak' : ''}`}>
-                        <div className="stat-value">{consecutiveWins}{consecutiveWins >= 3 ? ' 🔥' : ''}</div>
-                        <div className="stat-label">{t.consecutiveWins}</div>
-                      </div>
-                    )}
+                    <div className={`stat-card ${consecutiveWins >= 3 ? 'stat-streak' : ''}`}>
+                      <div className="stat-value">{consecutiveWins}{consecutiveWins >= 3 ? ' 🔥' : ''}</div>
+                      <div className="stat-label">{t.consecutiveWins}</div>
+                    </div>
                   </div>
                   {ownerPlayer && (
                     <div className="stats-row stats-row-bottom">

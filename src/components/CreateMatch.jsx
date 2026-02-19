@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import './CreateMatch.css';
 
-function CreateMatch({ setView, players, folders, createTeams, settings, t }) {
+function CreateMatch({ setView, players, folders, savedTeams, createTeams, settings, t }) {
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [goalkeepers, setGoalkeepers] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState('all');
+  const [selectedTeams, setSelectedTeams] = useState([]); // IDs of selected teams
   const [error, setError] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState('');
@@ -40,6 +41,31 @@ function CreateMatch({ setView, players, folders, createTeams, settings, t }) {
     } else {
       const toAdd = names.filter(n => !selectedPlayers.includes(n));
       setSelectedPlayers([...selectedPlayers, ...toAdd]);
+    }
+  };
+
+  const handleTeamToggle = (teamId) => {
+    if (selectedTeams.includes(teamId)) {
+      // Deselect team
+      const team = savedTeams.find(t => t.id === teamId);
+      if (team) {
+        setSelectedPlayers(selectedPlayers.filter(n => !team.playerNames.includes(n)));
+        setGoalkeepers(goalkeepers.filter(g => !team.playerNames.includes(g)));
+      }
+      setSelectedTeams(selectedTeams.filter(id => id !== teamId));
+    } else {
+      // Select team (max 2)
+      if (selectedTeams.length >= 2) {
+        setError(t.maxTeamsError);
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+      const team = savedTeams.find(t => t.id === teamId);
+      if (team) {
+        const toAdd = team.playerNames.filter(n => !selectedPlayers.includes(n));
+        setSelectedPlayers([...selectedPlayers, ...toAdd]);
+      }
+      setSelectedTeams([...selectedTeams, teamId]);
     }
   };
 
@@ -96,23 +122,57 @@ function CreateMatch({ setView, players, folders, createTeams, settings, t }) {
   };
 
   const balanceTeams = (playersToBalance, gks) => {
-    const team1 = [], team2 = [];
-    const gkPlayers = playersToBalance.filter(p => gks.includes(p.name));
-    const fieldPlayers = playersToBalance.filter(p => !gks.includes(p.name));
-    const withRatings = fieldPlayers.map(p => ({ ...p, total: getSkillWeight(p) })).sort((a, b) => b.total - a.total);
+    // Separate players by team assignment
+    const team1Selected = selectedTeams.length >= 1 ? savedTeams.find(t => t.id === selectedTeams[0]) : null;
+    const team2Selected = selectedTeams.length >= 2 ? savedTeams.find(t => t.id === selectedTeams[1]) : null;
+
+    const team1Base = team1Selected
+      ? playersToBalance.filter(p => team1Selected.playerNames.includes(p.name))
+      : [];
+    const team2Base = team2Selected
+      ? playersToBalance.filter(p => team2Selected.playerNames.includes(p.name))
+      : [];
+
+    const assignedNames = [...team1Base, ...team2Base].map(p => p.name);
+    const unassigned = playersToBalance.filter(p => !assignedNames.includes(p.name));
+
+    // Sort unassigned by skill weight
+    const withRatings = unassigned.map(p => ({ ...p, total: getSkillWeight(p) })).sort((a, b) => b.total - a.total);
+
+    // Distribute unassigned evenly
+    const team1 = [...team1Base];
+    const team2 = [...team2Base];
+
+    // Balance GKs first
+    const gkPlayers = withRatings.filter(p => gks.includes(p.name));
+    const nonGKs = withRatings.filter(p => !gks.includes(p.name));
 
     if (gkPlayers.length >= 2) {
       team1.push(gkPlayers[0]);
       team2.push(gkPlayers[1]);
-      withRatings.forEach((player, i) => { if (i % 2 === 0) team1.push(player); else team2.push(player); });
+      gkPlayers.splice(0, 2);
     } else if (gkPlayers.length === 1) {
-      const gkWithTotal = { ...gkPlayers[0], total: getSkillWeight(gkPlayers[0]) };
-      const allSorted = [...withRatings, gkWithTotal].sort((a, b) => b.total - a.total);
-      allSorted.forEach((player, i) => { if (i % 2 === 0) team1.push(player); else team2.push(player); });
-    } else {
-      withRatings.forEach((player, i) => { if (i % 2 === 0) team1.push(player); else team2.push(player); });
+      if (team1.length <= team2.length) team1.push(gkPlayers[0]);
+      else team2.push(gkPlayers[0]);
+      gkPlayers.splice(0, 1);
     }
-    return { team1, team2 };
+
+    // Distribute remaining (GKs + field players) by snake draft
+    const remaining = [...gkPlayers, ...nonGKs];
+    remaining.forEach((player, i) => {
+      if (team1.length <= team2.length) team1.push(player);
+      else team2.push(player);
+    });
+
+    return {
+      team1,
+      team2,
+      goalkeepers: gks,
+      team1Name: team1Selected?.name,
+      team1Color: team1Selected?.color,
+      team2Name: team2Selected?.name,
+      team2Color: team2Selected?.color,
+    };
   };
 
   const getPlayerTotal = (player) => player.velocidad + player.defensa + player.pase + player.gambeta + player.pegada;
@@ -195,6 +255,35 @@ function CreateMatch({ setView, players, folders, createTeams, settings, t }) {
             })}
           </div>
         </div>
+
+        {/* Teams selector */}
+        {savedTeams.length > 0 && (
+          <div className="teams-selector">
+            <label>{t.savedTeamsLabel}</label>
+            <div className="teams-buttons">
+              {savedTeams.map(team => {
+                const isSelected = selectedTeams.includes(team.id);
+                return (
+                  <button
+                    key={team.id}
+                    className={`team-btn ${isSelected ? 'active' : ''}`}
+                    style={{ borderLeftColor: team.color }}
+                    onClick={() => handleTeamToggle(team.id)}
+                  >
+                    <span className="team-color-dot" style={{ background: team.color }} />
+                    {team.name} ({team.playerNames.length})
+                  </button>
+                );
+              })}
+            </div>
+            {selectedTeams.length > 0 && (
+              <div className="teams-hint">
+                {selectedTeams.length === 1 && <span>{t.oneTeamHint}</span>}
+                {selectedTeams.length === 2 && <span>{t.twoTeamsHint}</span>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Quick add */}
         <div className="quick-add-section">

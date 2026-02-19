@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import Home from './components/Home';
 import CreatePlayer from './components/CreatePlayer';
+import ManageTeams from './components/ManageTeams';
 import CreateMatch from './components/CreateMatch';
 import Teams from './components/Teams';
 import MatchHistory from './components/MatchHistory';
@@ -22,6 +23,7 @@ function App() {
   const [view, setView] = useState('home');
   const [players, setPlayers] = useState([]);
   const [folders, setFolders] = useState([]);
+  const [savedTeams, setSavedTeams] = useState([]);
   const [currentTeams, setCurrentTeams] = useState(null);
   const [matches, setMatches] = useState([]);
   const [pendingMatches, setPendingMatches] = useState([]);
@@ -35,6 +37,7 @@ function App() {
   useEffect(() => {
     const savedPlayers = localStorage.getItem('teamBalancePlayers');
     const savedFolders = localStorage.getItem('teamBalanceFolders');
+    const savedTeamsData = localStorage.getItem('teamBalanceSavedTeams');
     const savedMatches = localStorage.getItem('teamBalanceMatches');
     const savedPending = localStorage.getItem('teamBalancePending');
     const savedOwner = localStorage.getItem('teamBalanceOwner');
@@ -43,6 +46,7 @@ function App() {
 
     if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
     if (savedFolders) setFolders(JSON.parse(savedFolders));
+    if (savedTeamsData) setSavedTeams(JSON.parse(savedTeamsData));
     if (savedMatches) setMatches(JSON.parse(savedMatches));
     if (savedPending) setPendingMatches(JSON.parse(savedPending));
     if (savedOwner) setOwnerPlayer(JSON.parse(savedOwner));
@@ -52,6 +56,7 @@ function App() {
 
   useEffect(() => { localStorage.setItem('teamBalancePlayers', JSON.stringify(players)); }, [players]);
   useEffect(() => { localStorage.setItem('teamBalanceFolders', JSON.stringify(folders)); }, [folders]);
+  useEffect(() => { localStorage.setItem('teamBalanceSavedTeams', JSON.stringify(savedTeams)); }, [savedTeams]);
   useEffect(() => { localStorage.setItem('teamBalanceMatches', JSON.stringify(matches)); }, [matches]);
   useEffect(() => { localStorage.setItem('teamBalancePending', JSON.stringify(pendingMatches)); }, [pendingMatches]);
   useEffect(() => { if (ownerPlayer) localStorage.setItem('teamBalanceOwner', JSON.stringify(ownerPlayer)); }, [ownerPlayer]);
@@ -138,6 +143,11 @@ function App() {
     }));
   };
 
+  // Saved Teams CRUD
+  const addSavedTeam = (team) => setSavedTeams([...savedTeams, team]);
+  const updateSavedTeam = (updatedTeam) => setSavedTeams(savedTeams.map(t => t.id === updatedTeam.id ? updatedTeam : t));
+  const deleteSavedTeam = (teamId) => setSavedTeams(savedTeams.filter(t => t.id !== teamId));
+
   const createTeams = (teamsData) => setCurrentTeams(teamsData);
 
   const saveMatch = (matchData) => {
@@ -199,12 +209,25 @@ function App() {
             t={t}
           />
         );
+      case 'manage-teams':
+        return (
+          <ManageTeams
+            setView={setView}
+            savedTeams={savedTeams}
+            addSavedTeam={addSavedTeam}
+            updateSavedTeam={updateSavedTeam}
+            deleteSavedTeam={deleteSavedTeam}
+            players={players}
+            t={t}
+          />
+        );
       case 'create-match':
         return (
           <CreateMatch
             setView={setView}
             players={players}
             folders={folders}
+            savedTeams={savedTeams}
             createTeams={createTeams}
             settings={settings}
             t={t}

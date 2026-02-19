@@ -21,6 +21,10 @@ function Home({ setView, pendingMatches, ownerPlayer, t }) {
             <span className="btn-icon">👤</span>
             <span className="btn-text">{t.createPlayer}</span>
           </button>
+          <button className="home-btn btn-manage-teams" onClick={() => setView('manage-teams')}>
+            <span className="btn-icon">🏆</span>
+            <span className="btn-text">{t.manageTeams}</span>
+          </button>
           <button className="home-btn btn-create-match" onClick={() => setView('create-match')}>
             <span className="btn-icon">⚡</span>
             <span className="btn-text">{t.buildMatch}</span>

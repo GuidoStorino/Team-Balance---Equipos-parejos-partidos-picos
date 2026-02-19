@@ -184,3 +184,7 @@
   .home-btn { padding: 24px 32px; font-size: 1.1rem; }
   .btn-icon { font-size: 1.5rem; }
 }
+
+/* Manage Teams button */
+.btn-manage-teams { border-color: #ff6b35; }
+.btn-manage-teams:hover { background: #ff6b35; color: var(--white); }

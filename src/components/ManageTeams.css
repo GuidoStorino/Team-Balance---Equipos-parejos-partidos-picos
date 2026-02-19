@@ -1,0 +1,207 @@
+/* Manage Teams */
+.manage-teams { min-height: 100vh; padding: 120px 0 80px; }
+
+/* Form */
+.team-form-container {
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 32px 28px;
+  margin-bottom: 40px;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.team-form h3 {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2rem;
+  color: var(--accent-yellow);
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+}
+
+.color-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.color-option.selected {
+  border-color: var(--white);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px var(--pitch-green), 0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* Players checklist */
+.players-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+}
+
+.player-check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.player-check-item:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--accent-yellow);
+}
+
+.player-check-item input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.player-check-item span {
+  color: var(--white);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Teams list */
+.teams-list-section {
+  margin-top: 48px;
+}
+
+.teams-list-section h3 {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.team-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  border-left: 6px solid var(--accent-yellow);
+  transition: all 0.3s ease;
+  animation: slideInUp 0.4s ease-out;
+}
+
+.team-card:hover {
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.team-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.team-color-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.team-card h4 {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.6rem;
+  color: var(--accent-yellow);
+  letter-spacing: 1.5px;
+  margin: 0;
+}
+
+.team-card-players {
+  margin-bottom: 16px;
+}
+
+.players-count {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.players-preview {
+  color: rgba(255,255,255,0.9);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.team-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.team-card-actions .btn-edit,
+.team-card-actions .btn-delete {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.team-card-actions .btn-edit {
+  background: var(--pitch-green);
+  color: var(--white);
+}
+
+.team-card-actions .btn-edit:hover {
+  background: var(--pitch-light);
+  transform: scale(1.05);
+}
+
+.team-card-actions .btn-delete {
+  background: #dc3545;
+  color: var(--white);
+}
+
+.team-card-actions .btn-delete:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+  .players-checklist {
+    grid-template-columns: 1fr;
+  }
+}
